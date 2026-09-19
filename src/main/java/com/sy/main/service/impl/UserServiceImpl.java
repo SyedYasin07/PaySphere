@@ -1,5 +1,6 @@
 package com.sy.main.service.impl;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -8,6 +9,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.sy.main.dto.ChangePasswordDTO;
 import com.sy.main.dto.EmailVerificationDTO;
@@ -19,12 +21,14 @@ import com.sy.main.dto.ResetPasswordDTO;
 import com.sy.main.dto.UserRespDTO;
 import com.sy.main.repository.RoleRepo;
 import com.sy.main.repository.UserRepo;
+import com.sy.main.repository.WalletRepo;
 import com.sy.main.security.JwtUtil;
 import com.sy.main.security.SecurityUtil;
 import com.sy.main.service.UserService;
 
 import com.sy.main.Entity.Role;
 import com.sy.main.Entity.User;
+import com.sy.main.Entity.Wallet;
 
 @Service
 public class UserServiceImpl implements UserService{
@@ -34,13 +38,15 @@ public class UserServiceImpl implements UserService{
 	
 	@Autowired
 	private RoleRepo rp;
+	@Autowired
+	private WalletRepo wr;
 	
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 	@Autowired
 	private JwtUtil jwtUtil;
 	
-	
+	@Transactional
 	@Override
 	public UserRespDTO regUser(RegReqDTO req) {
 			Optional<User> existingUser=ur.findByEmail(req.getEmail());
@@ -64,6 +70,13 @@ public class UserServiceImpl implements UserService{
 			us.setEmailVerified(false);
 			
 		User saveduser=ur.save(us);
+		Wallet wallet = new Wallet();
+		wallet.setUser(saveduser);
+		wallet.setWalletNumber("PS" + System.currentTimeMillis());
+		wallet.setBalance(BigDecimal.ZERO);
+		wallet.setWalletStatus("ACTIVE");
+
+		wr.save(wallet);
 		
 		UserRespDTO resp= new UserRespDTO();
 		resp.setUserId(saveduser.getUserId());
