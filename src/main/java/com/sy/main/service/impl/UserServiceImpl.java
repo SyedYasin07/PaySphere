@@ -69,14 +69,25 @@ public class UserServiceImpl implements UserService{
 			us.setStatus("ACTIVE");
 			us.setEmailVerified(false);
 			
-		User saveduser=ur.save(us);
-		Wallet wallet = new Wallet();
-		wallet.setUser(saveduser);
-		wallet.setWalletNumber("PS" + System.currentTimeMillis());
-		wallet.setBalance(BigDecimal.ZERO);
-		wallet.setWalletStatus("ACTIVE");
+			User saveduser = ur.save(us);
 
-		wr.save(wallet);
+			System.out.println("========== WALLET CREATION DEBUG ==========");
+			System.out.println("Created User ID: " + saveduser.getUserId());
+			System.out.println("Creating wallet for user: " + saveduser.getEmail());
+
+			Wallet wallet = new Wallet();
+			wallet.setUser(saveduser);
+			wallet.setWalletNumber("PAY" + System.currentTimeMillis());
+			wallet.setBalance(BigDecimal.ZERO);
+			wallet.setWalletStatus("ACTIVE");
+
+			Wallet savedWallet = wr.save(wallet);
+
+			System.out.println("Wallet created successfully!");
+			System.out.println("Wallet ID: " + savedWallet.getWalletId());
+			System.out.println("Wallet User ID: " + savedWallet.getUser().getUserId());
+			System.out.println("Wallet Number: " + savedWallet.getWalletNumber());
+			System.out.println("==========================================");
 		
 		UserRespDTO resp= new UserRespDTO();
 		resp.setUserId(saveduser.getUserId());
