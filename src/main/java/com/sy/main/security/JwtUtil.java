@@ -1,9 +1,11 @@
 package com.sy.main.security;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import io.jsonwebtoken.Claims;
@@ -12,9 +14,10 @@ import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtUtil {
+	
+	@Value("${jwt.secret}")
 
-    private final String SECRET =
-            "mySecretKeyForPaySphereApplication123456789";
+    private  String SECRET ;
 
     private final long EXPIRATION_TIME = 1000 * 60 * 60; // 1 hour
 
@@ -67,6 +70,6 @@ public class JwtUtil {
     // Secret key
     private SecretKey getSignKey() {
 
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
     }
 }
