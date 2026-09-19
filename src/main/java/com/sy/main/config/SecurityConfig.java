@@ -13,7 +13,7 @@ import com.sy.main.security.JwtAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import org.springframework.http.HttpMethod;
 import java.util.List;
 
 @Configuration
@@ -24,7 +24,10 @@ public class SecurityConfig {
 	    CorsConfiguration configuration = new CorsConfiguration();
 
 	    configuration.setAllowedOrigins(
-	        List.of("http://localhost:5173")
+	        List.of("http://localhost:5173",
+	        		
+	        		"https://paysphere-1.onrender.com"
+	        		)
 	    );
 
 	    configuration.setAllowedMethods(
@@ -73,6 +76,7 @@ public class SecurityConfig {
         )
             .authorizeHttpRequests(auth -> auth
 
+            		.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 // Public
                 .requestMatchers(
                     "/users/register",
