@@ -43,4 +43,5 @@ public interface TransactionRepo extends JpaRepository<Transaction, Integer> {
     WHERE t.transactionStatus = 'SUCCESS'   
     """) 
     BigDecimal getTotalSuccessfulAmount();
+    void deleteBySenderOrReceiver(User sender, User receiver);
 }

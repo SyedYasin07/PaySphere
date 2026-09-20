@@ -20,6 +20,7 @@ import com.sy.main.dto.RegReqDTO;
 import com.sy.main.dto.ResetPasswordDTO;
 import com.sy.main.dto.UserRespDTO;
 import com.sy.main.repository.RoleRepo;
+import com.sy.main.repository.TransactionRepo;
 import com.sy.main.repository.UserRepo;
 import com.sy.main.repository.WalletRepo;
 import com.sy.main.security.JwtUtil;
@@ -40,6 +41,8 @@ public class UserServiceImpl implements UserService{
 	private RoleRepo rp;
 	@Autowired
 	private WalletRepo wr;
+	@Autowired
+	private TransactionRepo tr;
 	
 	@Autowired
 	private PasswordEncoder passwordEncoder;
@@ -188,9 +191,15 @@ public class UserServiceImpl implements UserService{
 	}
 
 	@Override
+	@Transactional
 	public void deleteUser(Integer userId) {
 		User user= ur.findById(userId)
 				.orElseThrow(()-> new RuntimeException("User not found"));
+		tr.deleteBySenderOrReceiver(user, user);
+		Optional<Wallet> wal=wr.findByUser(user);
+		if(wal.isPresent()) {
+			wr.delete(wal.get());
+		}
 		ur.delete(user);
 		
 	}
