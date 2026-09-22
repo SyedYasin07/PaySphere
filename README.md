@@ -27,6 +27,17 @@ https://paysphere-ju54.onrender.com
 **Source Code:**
 https://github.com/SyedYasin07/PaySphere
 
+
+# 🔐 Demo Credentials
+
+Recruiters can use the following demo account to explore the PaySphere application.
+
+### 👤 User Login
+
+```text
+Email: yasin@gmail.com
+Password: $yasin4758
+
 ---
 
 ## 🎯 Project Overview
