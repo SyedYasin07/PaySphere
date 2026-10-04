@@ -29,6 +29,8 @@ public class TransactionServiceImpl implements TransactionService {
 	private WalletRepo wr;
 	@Autowired
 	private UserRepo ur;
+	private static final BigDecimal MAX_TRANSACTION_AMOUNT =
+	        new BigDecimal("10000000.00");
 
 	@Override
 	@Transactional
@@ -56,6 +58,11 @@ public class TransactionServiceImpl implements TransactionService {
 		
 		if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
 		    throw new RuntimeException("Amount must be greater than zero");
+		}
+		if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+		    throw new RuntimeException(
+		        "Transfer limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+		    );
 		}
 
 		if ("BLOCKED".equals(senderWallet.getWalletStatus())) {

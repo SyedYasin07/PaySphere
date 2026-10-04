@@ -28,6 +28,8 @@ public class WalletServiceImpl implements WalletService {
 	private UserRepo usr;
 	@Autowired
 	private TransactionRepo tr;
+	
+	private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("10000000.00");
 	@Override
 	public WalletRespDto createWallet(Integer userId) {
 		User user= usr.findById(userId).orElseThrow(
@@ -72,6 +74,9 @@ public class WalletServiceImpl implements WalletService {
 	    if(amount.compareTo(BigDecimal.ZERO)<=0) {
 	    	throw new RuntimeException("Amount must be greater than zero");
 	    }
+	    if(amount.compareTo(MAX_TRANSACTION_AMOUNT)>0) {
+	    	throw new RuntimeException("Add Money limit exceeded.Maximum allowed amount is ₹1,00,00,000 per transaction");
+	    }
 	    wal.setBalance(wal.getBalance().add(amount));
 	    Wallet update=wr.save(wal);
 	    WalletRespDto resp= new WalletRespDto();
@@ -87,6 +92,9 @@ public class WalletServiceImpl implements WalletService {
 		            .orElseThrow(() -> new RuntimeException("Wallet not found"));
 		    if(amount.compareTo(BigDecimal.ZERO)<=0) {
 		    	throw new RuntimeException("Amount must be greater than zero");
+		    }
+		    if(amount.compareTo(MAX_TRANSACTION_AMOUNT)>0) {
+		    	throw new RuntimeException("Withdrawal limit exceeded.Maximum allowed amount is ₹1,00,00,000 per transaction");
 		    }
 		    if(wal.getBalance().compareTo(amount)<0) {
 		    	throw new RuntimeException("Insufficient balance");
@@ -235,6 +243,11 @@ public class WalletServiceImpl implements WalletService {
 	    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
 	        throw new RuntimeException("Amount must be greater than zero");
 	    }
+	    if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+	        throw new RuntimeException(
+	            "Transfer limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+	        );
+	    }
 
 	    // 3. Validate QR data
 	    String qrData = req.getReceiverQrData();
@@ -325,6 +338,14 @@ public class WalletServiceImpl implements WalletService {
 	    // 16. Return success
 	    return "Money transferred successfully";
 	}
+	
+	
+	
+	
+	
+	
+	
+	
 	}
 	
 	
