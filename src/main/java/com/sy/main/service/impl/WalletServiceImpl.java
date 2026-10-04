@@ -150,6 +150,11 @@ public class WalletServiceImpl implements WalletService {
 	    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
 	        throw new RuntimeException("Amount must be greater than zero");
 	    }
+	    if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+	        throw new RuntimeException(
+	            "Add Money limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+	        );
+	    }
 
 	    wallet.setBalance(wallet.getBalance().add(amount));
 
@@ -176,6 +181,11 @@ public class WalletServiceImpl implements WalletService {
 
 	    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
 	        throw new RuntimeException("Amount must be greater than zero");
+	    }
+	    if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
+	        throw new RuntimeException(
+	            "Withdrawal limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+	        );
 	    }
 
 	    if (wallet.getBalance().compareTo(amount) < 0) {
