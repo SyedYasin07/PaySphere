@@ -31,7 +31,7 @@ public class TransactionServiceImpl implements TransactionService {
 	private UserRepo ur;
 	private static final BigDecimal MAX_TRANSACTION_AMOUNT =
 	        new BigDecimal("10000000.00");
-
+	private static final int MAX_DAILY_TRANSFERS =5;
 	@Override
 	@Transactional
 	public TransactionRespDto transferMoney(
@@ -62,6 +62,27 @@ public class TransactionServiceImpl implements TransactionService {
 		if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
 		    throw new RuntimeException(
 		        "Transfer limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+		    );
+		}
+		LocalDateTime startOfDay = LocalDateTime.now()
+		        .toLocalDate()
+		        .atStartOfDay();
+
+		LocalDateTime startOfNextDay = startOfDay.plusDays(1);
+
+		long dailyTransferCount =
+		        tr.countBySenderAndTransactionStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+		                sender,
+		                "SUCCESS",
+		                startOfDay,
+		                startOfNextDay
+		        );
+
+		if (dailyTransferCount >= MAX_DAILY_TRANSFERS) {
+		    throw new RuntimeException(
+		        "Daily transfer limit exceeded. You can make a maximum of "
+		        + MAX_DAILY_TRANSFERS
+		        + " successful transfers per day"
 		    );
 		}
 

@@ -11,10 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 import com.sy.main.Entity.Transaction;
 import com.sy.main.Entity.User;
 import com.sy.main.Entity.Wallet;
+import com.sy.main.Entity.WalletOperation;
 import com.sy.main.dto.TransferMoneyReqDTO;
 import com.sy.main.dto.WalletRespDto;
 import com.sy.main.repository.TransactionRepo;
 import com.sy.main.repository.UserRepo;
+import com.sy.main.repository.WalletOperationRepo;
 import com.sy.main.repository.WalletRepo;
 import com.sy.main.security.SecurityUtil;
 import com.sy.main.service.WalletService;
@@ -28,8 +30,12 @@ public class WalletServiceImpl implements WalletService {
 	private UserRepo usr;
 	@Autowired
 	private TransactionRepo tr;
+	@Autowired
+	private WalletOperationRepo wor;
 	
 	private static final BigDecimal MAX_TRANSACTION_AMOUNT = new BigDecimal("10000000.00");
+	private static final int MAX_DAILY_TRANSFERS =5;
+	private static final int MAX_DAILY_WALLET_OPERATIONS = 5;
 	@Override
 	public WalletRespDto createWallet(Integer userId) {
 		User user= usr.findById(userId).orElseThrow(
@@ -136,6 +142,7 @@ public class WalletServiceImpl implements WalletService {
 
 	    return wallet.getBalance();
 	}
+	@Transactional
 	@Override
 	public WalletRespDto addMoneyToMyWallet(BigDecimal amount) {
 
@@ -143,24 +150,68 @@ public class WalletServiceImpl implements WalletService {
 
 	    Wallet wallet = wr.findByUser(user)
 	            .orElseThrow(() -> new RuntimeException("Wallet not found"));
-	    if("BLOCKED".equals(wallet.getWalletStatus())) {
-	    	throw new RuntimeException("Wallet is blocked");
+
+	    if ("BLOCKED".equals(wallet.getWalletStatus())) {
+	        throw new RuntimeException("Wallet is blocked");
 	    }
 
-	    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+	    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
 	        throw new RuntimeException("Amount must be greater than zero");
 	    }
+
 	    if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
 	        throw new RuntimeException(
-	            "Add Money limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+	                "Add Money limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
 	        );
 	    }
 
+	    // Check today's successful Add Money operations
+	    LocalDateTime startOfDay =
+	            LocalDateTime.now().toLocalDate().atStartOfDay();
+
+	    LocalDateTime startOfNextDay =
+	            startOfDay.plusDays(1);
+
+	    long dailyAddMoneyCount =
+	            wor.countByUserAndOperationTypeAndOperationStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+	                    user,
+	                    "ADD_MONEY",
+	                    "SUCCESS",
+	                    startOfDay,
+	                    startOfNextDay
+	            );
+
+	    if (dailyAddMoneyCount >= MAX_DAILY_WALLET_OPERATIONS) {
+	        throw new RuntimeException(
+	                "Daily Add Money limit exceeded. You can make a maximum of "
+	                        + MAX_DAILY_WALLET_OPERATIONS
+	                        + " successful Add Money transactions per day"
+	        );
+	    }
+
+	    // Add money to wallet
 	    wallet.setBalance(wallet.getBalance().add(amount));
 
 	    Wallet updated = wr.save(wallet);
 
+	    // Create wallet operation record
+	    WalletOperation operation = new WalletOperation();
+
+	    operation.setWallet(updated);
+	    operation.setUser(user);
+	    operation.setAmount(amount);
+	    operation.setOperationType("ADD_MONEY");
+	    operation.setOperationStatus("SUCCESS");
+	    operation.setReferenceNumber(
+	            "ADD" + System.currentTimeMillis()
+	    );
+	    operation.setCreatedAt(LocalDateTime.now());
+
+	    wor.save(operation);
+
+	    // Response
 	    WalletRespDto resp = new WalletRespDto();
+
 	    resp.setWalletId(updated.getWalletId());
 	    resp.setWalletNumber(updated.getWalletNumber());
 	    resp.setBalance(updated.getBalance());
@@ -168,6 +219,7 @@ public class WalletServiceImpl implements WalletService {
 
 	    return resp;
 	}
+	@Transactional
 	@Override
 	public WalletRespDto withdrawFromMyWallet(BigDecimal amount) {
 
@@ -175,16 +227,18 @@ public class WalletServiceImpl implements WalletService {
 
 	    Wallet wallet = wr.findByUser(user)
 	            .orElseThrow(() -> new RuntimeException("Wallet not found"));
-	    if("BLOCKED".equals(wallet.getWalletStatus())) {
-	    	throw new RuntimeException("Wallet is blocked");
+
+	    if ("BLOCKED".equals(wallet.getWalletStatus())) {
+	        throw new RuntimeException("Wallet is blocked");
 	    }
 
-	    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+	    if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
 	        throw new RuntimeException("Amount must be greater than zero");
 	    }
+
 	    if (amount.compareTo(MAX_TRANSACTION_AMOUNT) > 0) {
 	        throw new RuntimeException(
-	            "Withdrawal limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
+	                "Withdrawal limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
 	        );
 	    }
 
@@ -192,11 +246,53 @@ public class WalletServiceImpl implements WalletService {
 	        throw new RuntimeException("Insufficient balance");
 	    }
 
+	    // Check today's successful withdrawals
+	    LocalDateTime startOfDay =
+	            LocalDateTime.now().toLocalDate().atStartOfDay();
+
+	    LocalDateTime startOfNextDay =
+	            startOfDay.plusDays(1);
+
+	    long dailyWithdrawCount =
+	            wor.countByUserAndOperationTypeAndOperationStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+	                    user,
+	                    "WITHDRAW",
+	                    "SUCCESS",
+	                    startOfDay,
+	                    startOfNextDay
+	            );
+
+	    if (dailyWithdrawCount >= MAX_DAILY_WALLET_OPERATIONS) {
+	        throw new RuntimeException(
+	                "Daily withdrawal limit exceeded. You can make a maximum of "
+	                        + MAX_DAILY_WALLET_OPERATIONS
+	                        + " successful withdrawals per day"
+	        );
+	    }
+
+	    // Withdraw money
 	    wallet.setBalance(wallet.getBalance().subtract(amount));
 
 	    Wallet updated = wr.save(wallet);
 
+	    // Create wallet operation record
+	    WalletOperation operation = new WalletOperation();
+
+	    operation.setWallet(updated);
+	    operation.setUser(user);
+	    operation.setAmount(amount);
+	    operation.setOperationType("WITHDRAW");
+	    operation.setOperationStatus("SUCCESS");
+	    operation.setReferenceNumber(
+	            "WDR" + System.currentTimeMillis()
+	    );
+	    operation.setCreatedAt(LocalDateTime.now());
+
+	    wor.save(operation);
+
+	    // Response
 	    WalletRespDto resp = new WalletRespDto();
+
 	    resp.setWalletId(updated.getWalletId());
 	    resp.setWalletNumber(updated.getWalletNumber());
 	    resp.setBalance(updated.getBalance());
@@ -257,6 +353,12 @@ public class WalletServiceImpl implements WalletService {
 	        throw new RuntimeException(
 	            "Transfer limit exceeded. Maximum allowed amount is ₹1,00,00,000 per transaction"
 	        );
+	    }
+	    LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
+	    LocalDateTime startOfNextDay =startOfDay.plusDays(1);
+	    long dailyTransferCount = tr.countBySenderAndTransactionStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(sender, "SUCCESS", startOfDay, startOfNextDay);
+	    if(dailyTransferCount>=MAX_DAILY_TRANSFERS) {
+	    	throw new RuntimeException("Daily transfer limit exceeded.You can make a maximum of "+ MAX_DAILY_TRANSFERS+"successful transfers per day");
 	    }
 
 	    // 3. Validate QR data

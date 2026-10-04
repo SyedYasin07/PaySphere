@@ -1,6 +1,7 @@
 package com.sy.main.repository;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,4 +45,16 @@ public interface TransactionRepo extends JpaRepository<Transaction, Integer> {
     """) 
     BigDecimal getTotalSuccessfulAmount();
     void deleteBySenderOrReceiver(User sender, User receiver);
+    
+    
+    
+    long countBySenderAndTransactionStatusAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+    		User sender,
+    		String transactionStatus,
+    		LocalDateTime startOfDay,
+    		LocalDateTime startOfNextDay
+    		
+    		);
+    
+    
 }
